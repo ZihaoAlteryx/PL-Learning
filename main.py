@@ -200,7 +200,7 @@ class vgg16_model(pl.LightningModule):
 criterion = nn.CrossEntropyLoss()
 batch_size = 16
 img_size = 224
-epoch = 100
+epoch = 10
 
 # Set LightningSystem  ################################################
 train_img_path = ["data/F1_1.jpg","data/F1_2.jpg","data/F1_3.jpg","data/F1_4.jpg","data/F1_5.jpg","data/F1_6.jpg","data/F1_7.jpg","data/F1_8.jpg","data/F1_9.jpg", "data/F1_10.jpg"
@@ -220,8 +220,9 @@ trainer = Trainer(
 #     default_save_path=output_path,            # Path for save lightning_logs
 #     checkpoint_callback=checkpoint_callback,  # Set Checkpoint-Callback
 #     early_stop_callback=earlystopping,        # Set EarlyStopping-Callback
-#     gpus=[0]                                  # GPU
+    gpus=[0]                                  # GPU
 )
 
 # Start Training!!  ################################################
 trainer.fit(model)
+
