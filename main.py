@@ -6,6 +6,7 @@ from PIL import Image
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm_notebook as tqdm
 
+import json
 
 import torch
 import torch.nn as nn
@@ -49,25 +50,28 @@ class ImageTransform():
 
 
 class CustomDataset(Dataset):
-    def __init__(self, file_list, transform=None, phase='train'):    
-        self.file_list = file_list
+    def __init__(self, manifest_file, transform=None, phase='train'):    
+        self.manifest_info  = []
         self.transform = transform
         self.phase = phase
+        with open(manifest_file) as f:
+            for line in f:
+                self.manifest_info.append(json.loads(line))
         
     def __len__(self):
-        return len(self.file_list)
+        return len(self.manifest_info)
     
     def __getitem__(self, idx):
         
-        img_path = self.file_list[idx]
-        img = Image.open(img_path)
+        img_name = self.manifest_info[idx]["source-ref"]
+        img = Image.open(img_name)
         # Transformimg Image
         img_transformed = self.transform(img, self.phase)
         
         # Get Label
-        if "F1" in img_path:
+        if "F1" in img_name:
             label = 1
-        elif "Car" in img_path:
+        elif "Car" in img_name:
             label = 0
 
         return img_transformed, label
@@ -202,10 +206,13 @@ batch_size = 16
 img_size = 224
 epoch = 10
 
+
+
 # Set LightningSystem  ################################################
-train_img_path = ["data/F1_1.jpg","data/F1_2.jpg","data/F1_3.jpg","data/F1_4.jpg","data/F1_5.jpg","data/F1_6.jpg","data/F1_7.jpg","data/F1_8.jpg","data/F1_9.jpg", "data/F1_10.jpg"
-                    ,"data/Car_1.jpg","data/Car_2.jpg","data/Car_3.jpg","data/Car_4.jpg","data/Car_5.jpg","data/Car_6.jpg"]
-model = vgg16_model(train_img_path, criterion, batch_size, img_size)
+
+manifest = "train_local.manifest"
+
+model = vgg16_model(manifest, criterion, batch_size, img_size)
 
 # Callbacks  ################################################
 # Save Model
