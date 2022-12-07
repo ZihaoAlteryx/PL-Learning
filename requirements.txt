@@ -1,0 +1,12 @@
+pytorch_lightning
+mlflow
+argparse
+numpy
+torchvision
+torchsummary
+scikit-learn
+seaborn
+pandas
+PIL
+scikit-learn
+tqdm

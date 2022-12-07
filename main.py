@@ -1,10 +1,9 @@
 #https://www.kaggle.com/code/bootiu/dog-vs-cat-transfer-learning-by-pytorch-lightning
 import numpy as np
 import pandas as pd
-import os, glob, time, copy, random, zipfile
 from PIL import Image
 from sklearn.model_selection import train_test_split
-from tqdm import tqdm_notebook as tqdm
+import tqdm
 
 import json
 
@@ -13,7 +12,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
-import torchvision
 from torchvision import models, transforms
 
 import pytorch_lightning as pl
@@ -168,7 +166,7 @@ class vgg16_model(pl.LightningModule):
         
         logs = {'train_loss': loss, 'train_correct': correct}
         
-        return {'loss': loss, 'log': logs, 'progress_bar': logs}
+        return {'loss': loss, 'log': {'train_loss': loss}}
     
     # Validation Loop
     def validation_step(self, batch, batch_idx):
@@ -190,7 +188,7 @@ class vgg16_model(pl.LightningModule):
         
         logs = {'val_loss': loss, 'val_correct': correct}
         
-        return {'val_loss': loss, 'val_correct': correct, 'log': logs, 'progress_bar': logs}
+        return {'val_loss': loss, 'val_correct': correct, 'log': logs}
     
     # Aggegate Validation Result
     def validation_end(self, outputs):
@@ -204,7 +202,7 @@ class vgg16_model(pl.LightningModule):
 criterion = nn.CrossEntropyLoss()
 batch_size = 16
 img_size = 224
-epoch = 10
+epoch = 1
 
 
 
@@ -233,3 +231,43 @@ trainer = Trainer(
 # Start Training!!  ################################################
 trainer.fit(model)
 
+### Test the model #################################################
+def prediction(test_img_path, model, img_size, device):
+    id_list = []
+    pred_list = []
+
+    with torch.no_grad():
+        for path in test_img_path:
+            
+            # Preprocessing  #########################################
+            img = Image.open(path)
+            _id = path
+
+            transform = ImageTransform(img_size)
+            img = transform(img, phase='test')
+            img = img.unsqueeze(0)
+            
+            # Predict  ##############################################
+            model.eval()
+
+            outputs = model(img)
+            preds = F.softmax(outputs, dim=1)[:, 1].tolist()
+
+            id_list.append(_id)
+            pred_list.append(preds[0])
+
+    # Result DataFrame
+    res = pd.DataFrame({
+        'id': id_list,
+        'label': pred_list
+    })
+    
+    # Submit
+    res.to_csv('submission.csv', index=False)
+    
+    return res
+
+test_img_path = ["data/Car/test/Car_1.jpg", "data/F1/test/F1_1.jpg"]
+
+device = torch.device('cuda:0')
+res = prediction(test_img_path, model, img_size, device)
